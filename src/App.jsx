@@ -10,6 +10,8 @@ import Proveedor from './Components/Proveedor/Proveedor.jsx';
 import Cliente from './Components/Cliente/Cliente.jsx';
 import Usuario from './Components/Usuario/Usuario.jsx';
 import Orden from './Components/Orden/Orden.jsx';
+import Tienda from './Components/Tienda/Tienda.jsx'
+import Carrito from './Components/Tienda/Carrito.jsx';
 
 function App() {
   return (
@@ -24,6 +26,9 @@ function App() {
           <Route path="cliente" element={<Cliente />} /> {/* Ruta relativa */}
           <Route path="usuario" element={<Usuario />} /> {/* Ruta relativa */}
           <Route path="orden" element={<Orden />} /> {/* Ruta relativa */}
+        </Route>
+        <Route path="/tienda" element={<Tienda />}>
+          <Route path="carrito" element={<Carrito />} /> {/* Ruta relativa */}
         </Route>
       </Routes>
     </Router>
