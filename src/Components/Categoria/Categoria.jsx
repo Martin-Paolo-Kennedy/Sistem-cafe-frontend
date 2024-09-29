@@ -19,30 +19,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-// Mock API functions
-const fetchCategories = async () => {
-    // Replace with your API call
-    return [
-        { id: 1, name: 'Beverages', description: 'Drinks and refreshments' },
-        { id: 2, name: 'Condiments', description: 'Sauces and spices' },
-    ];
-};
-
-const createCategory = async (category) => {
-    // Replace with your API call
-    console.log('Creating category', category);
-};
-
-const updateCategory = async (id, category) => {
-    // Replace with your API call
-    console.log(`Updating category ${id}`, category);
-};
-
-const deleteCategory = async (id) => {
-    // Replace with your API call
-    console.log(`Deleting category ${id}`);
-};
+import CategoriaService from '../../Services/Categoria';
 
 const Categoria = () => {
     const [categories, setCategories] = useState([]);
@@ -50,46 +27,62 @@ const Categoria = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [open, setOpen] = useState(false);
     const [editMode, setEditMode] = useState(false);
-    const [currentCategory, setCurrentCategory] = useState({ id: '', name: '', description: '' });
+    const [currentCategory, setCurrentCategory] = useState({ idCategoria: '', nombreCategoria: '' });
 
     useEffect(() => {
         const loadCategories = async () => {
-            const data = await fetchCategories();
-            setCategories(data);
+            try {
+                const response = await CategoriaService.getAllCategorias();
+                console.log("Datos de categorías:", response.data);
+                setCategories(response.data);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
         };
 
         loadCategories();
     }, []);
 
-    const handleOpen = (category = { id: '', name: '', description: '' }) => {
+    const handleOpen = (category = { idCategoria: '', nombreCategoria: '' }) => {
         setCurrentCategory(category);
-        setEditMode(!!category.id); // Set edit mode if category has an ID
+        setEditMode(!!category.idCategoria);
         setOpen(true);
     };
 
     const handleClose = () => {
         setOpen(false);
-        setCurrentCategory({ id: '', name: '', description: '' });
+        setCurrentCategory({ idCategoria: '', nombreCategoria: '' });
         setEditMode(false);
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (editMode) {
-            await updateCategory(currentCategory.id, currentCategory);
-        } else {
-            await createCategory(currentCategory);
+        try {
+            if (editMode) {
+                await CategoriaService.updateCategoria(currentCategory);
+            } else {
+                if (currentCategory.nombreCategoria.trim() === '') {
+                    alert("El nombre de la categoría no puede estar vacío.");
+                    return; // Evitar el registro si el campo está vacío
+                }
+                await CategoriaService.createCategoria(currentCategory);
+            }
+            handleClose();
+            const response = await CategoriaService.getAllCategorias();
+            setCategories(response.data);
+        } catch (error) {
+            console.error("Error saving category:", error);
         }
-        handleClose();
-        // Reload categories after submit
-        const data = await fetchCategories();
-        setCategories(data);
     };
 
     const handleDelete = async (id) => {
-        await deleteCategory(id);
-        const data = await fetchCategories();
-        setCategories(data);
+        try {
+            await CategoriaService.deleteCategoria(id);
+            const response = await CategoriaService.getAllCategorias();
+            setCategories(response.data);
+        } catch (error) {
+            console.error("Error deleting category:", error);
+        }
     };
 
     const handleChangePage = (event, newPage) => {
@@ -113,21 +106,19 @@ const Categoria = () => {
                         <TableRow>
                             <TableCell>ID</TableCell>
                             <TableCell>Nombre</TableCell>
-                            <TableCell>Descripción</TableCell>
                             <TableCell>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {categories.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((category) => (
-                            <TableRow key={category.id}>
-                                <TableCell>{category.id}</TableCell>
-                                <TableCell>{category.name}</TableCell>
-                                <TableCell>{category.description}</TableCell>
+                            <TableRow key={category.idCategoria}>
+                                <TableCell>{category.idCategoria}</TableCell>
+                                <TableCell>{category.nombreCategoria}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(category)}>
                                         <EditIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(category.id)}>
+                                    <IconButton onClick={() => handleDelete(category.idCategoria)}>
                                         <DeleteIcon />
                                     </IconButton>
                                 </TableCell>
@@ -157,16 +148,8 @@ const Categoria = () => {
                         label="Nombre"
                         fullWidth
                         variant="outlined"
-                        value={currentCategory.name}
-                        onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Descripción"
-                        fullWidth
-                        variant="outlined"
-                        value={currentCategory.description}
-                        onChange={(e) => setCurrentCategory({ ...currentCategory, description: e.target.value })}
+                        value={currentCategory.nombreCategoria}
+                        onChange={(e) => setCurrentCategory({ ...currentCategory, nombreCategoria: e.target.value })}
                     />
                 </DialogContent>
                 <DialogActions>
