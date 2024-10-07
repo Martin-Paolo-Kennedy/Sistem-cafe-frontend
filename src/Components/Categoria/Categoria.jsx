@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CategoriaService from '../../Services/Categoria';
+import CategoriaService from '../../Services/categoria';
 
 const Categoria = () => {
     const [categories, setCategories] = useState([]);
