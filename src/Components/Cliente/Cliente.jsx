@@ -39,6 +39,7 @@ const Cliente = () => {
     useEffect(() => {
         const loadClientes = async () => {
             const response = await ClienteService.getAllCliente(); // Corregimos la función del servicio
+            console.log(response.data);
             setClientes(response.data); // Asumiendo que la respuesta tiene la data en 'data'
         };
 

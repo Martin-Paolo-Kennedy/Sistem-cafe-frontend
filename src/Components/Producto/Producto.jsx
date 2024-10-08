@@ -19,19 +19,20 @@ import {
     MenuItem,
     Select,
     InputLabel,
-    FormControl
+    FormControl,
+    CircularProgress
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ProductoService from '../../Services/producto';
-import CategoriaService from '../../Services/categoria';
+import CategoriaService from '../../Services/Categoria';
 import ProveedorService from '../../Services/proveedor';
 
 const Producto = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
-    const [users, setUsers] = useState([]); // Nuevo estado para usuarios
+    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [open, setOpen] = useState(false);
@@ -42,41 +43,38 @@ const Producto = () => {
         cantidad: '',
         precio: '',
         mensaje: '',
+        stock: '',
         id_categoria: '',
         id_proveedor: '',
-        id_usuario: '', // Añadir id_usuario para el producto
     });
 
-    // Cargar productos, categorías, proveedores y usuarios
+    // Load data from the backend
     useEffect(() => {
-        const loadProducts = async () => {
-            const response = await ProductoService.getAllProducto();
-            setProducts(response.data);
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                const [productResponse, categoryResponse, supplierResponse] = await Promise.all([
+                    ProductoService.getAllProducto(),
+                    CategoriaService.getAllCategorias(),
+                    ProveedorService.getAllProveedor(),
+                ]);
+                setProducts(productResponse.data);
+                setCategories(categoryResponse.data);
+                setSuppliers(supplierResponse.data);
+                setLoading(false);
+            } catch (error) {
+                console.error("Error loading data:", error);
+                setLoading(false);
+            }
         };
-
-        const loadCategories = async () => {
-            const response = await CategoriaService.getAllCategorias();
-            setCategories(response.data);
-        };
-
-        const loadSuppliers = async () => {
-            const response = await ProveedorService.getAllProveedor();
-            setSuppliers(response.data);
-        };
-
-        const loadUsers = async () => { // Cargar usuarios
-            const response = await UsuarioService.getAllUsuarios(); // Asegúrate de que el servicio existe
-            setUsers(response.data);
-        };
-
-        loadProducts();
-        loadCategories();
-        loadSuppliers();
-        loadUsers(); // Llamar a la carga de usuarios
+        loadData();
     }, []);
 
-    // Abrir el diálogo de agregar/editar producto
-    const handleOpen = (product = { idProducto: '', nombreProducto: '', cantidad: '', precio: '', mensaje: '', id_categoria: '', id_proveedor: '', id_usuario: '' }) => {
+    // Open dialog to create/edit a product
+    const handleOpen = (product = {
+        idProducto: '', nombreProducto: '', cantidad: '', precio: '', mensaje: '',
+        stock: '', id_categoria: '', id_proveedor: ''
+    }) => {
         setCurrentProduct(product);
         setEditMode(!!product.idProducto);
         setOpen(true);
@@ -84,11 +82,14 @@ const Producto = () => {
 
     const handleClose = () => {
         setOpen(false);
-        setCurrentProduct({ idProducto: '', nombreProducto: '', cantidad: '', precio: '', mensaje: '', id_categoria: '', id_proveedor: '', id_usuario: '' });
+        setCurrentProduct({
+            idProducto: '', nombreProducto: '', cantidad: '', precio: '',
+            mensaje: '', stock: '', id_categoria: '', id_proveedor: ''
+        });
         setEditMode(false);
     };
 
-    // Agregar o actualizar producto
+    // Submit form for adding/updating product
     const handleSubmit = async (event) => {
         event.preventDefault();
         try {
@@ -105,7 +106,7 @@ const Producto = () => {
         }
     };
 
-    // Eliminar producto
+    // Delete a product
     const handleDelete = async (id) => {
         try {
             await ProductoService.deleteProducto(id);
@@ -125,6 +126,10 @@ const Producto = () => {
         setPage(0);
     };
 
+    if (loading) {
+        return <CircularProgress />;
+    }
+
     return (
         <Container>
             <h1>Productos</h1>
@@ -140,9 +145,9 @@ const Producto = () => {
                             <TableCell>Precio</TableCell>
                             <TableCell>Cantidad</TableCell>
                             <TableCell>Mensaje</TableCell>
+                            <TableCell>Stock</TableCell>
                             <TableCell>Categoría</TableCell>
                             <TableCell>Proveedor</TableCell>
-                            <TableCell>Usuario</TableCell> {/* Nueva columna para Usuario */}
                             <TableCell>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
@@ -154,14 +159,12 @@ const Producto = () => {
                                 <TableCell>{product.precio}</TableCell>
                                 <TableCell>{product.cantidad}</TableCell>
                                 <TableCell>{product.mensaje}</TableCell>
+                                <TableCell>{product.stock}</TableCell>
                                 <TableCell>
                                     {product.categoria ? product.categoria.nombreCategoria : 'Sin Categoría'}
                                 </TableCell>
                                 <TableCell>
                                     {product.proveedor ? product.proveedor.nombreProveedor : 'Sin Proveedor'}
-                                </TableCell>
-                                <TableCell>
-                                    {product.usuario ? product.usuario.nombreUsuario : 'Sin Usuario'} {/* Mostrar el nombre del usuario */}
                                 </TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(product)}>
@@ -226,6 +229,15 @@ const Producto = () => {
                         value={currentProduct.mensaje}
                         onChange={(e) => setCurrentProduct({ ...currentProduct, mensaje: e.target.value })}
                     />
+                    <TextField
+                        margin="dense"
+                        label="Stock"
+                        fullWidth
+                        variant="outlined"
+                        type="number"
+                        value={currentProduct.stock}
+                        onChange={(e) => setCurrentProduct({ ...currentProduct, stock: e.target.value })}
+                    />
                     <FormControl fullWidth margin="dense">
                         <InputLabel>Categoría</InputLabel>
                         <Select
@@ -252,22 +264,9 @@ const Producto = () => {
                             ))}
                         </Select>
                     </FormControl>
-                    <FormControl fullWidth margin="dense">
-                        <InputLabel>Usuario</InputLabel>
-                        <Select
-                            value={currentProduct.id_usuario}
-                            onChange={(e) => setCurrentProduct({ ...currentProduct, id_usuario: e.target.value })}
-                        >
-                            {users.map((user) => (
-                                <MenuItem key={user.idUsuario} value={user.idUsuario}>
-                                    {user.nombreUsuario}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose} color="primary">
+                    <Button onClick={handleClose} color="secondary">
                         Cancelar
                     </Button>
                     <Button onClick={handleSubmit} color="primary">
@@ -280,4 +279,3 @@ const Producto = () => {
 };
 
 export default Producto;
-
