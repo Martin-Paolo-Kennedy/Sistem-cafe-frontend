@@ -26,7 +26,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ProductoService from '../../Services/producto';
 import CategoriaService from '../../Services/Categoria';
-import ProveedorService from '../../Services/proveedor';
+import ProveedorService from '../../Services/Proveedor';
 
 const Producto = () => {
     const [products, setProducts] = useState([]);
@@ -45,10 +45,10 @@ const Producto = () => {
         mensaje: '',
         stock: '',
         id_categoria: '',
-        id_proveedor: '',
+        id_proveedor: ''
     });
 
-    // Load data from the backend
+    // Cargar datos desde el backend
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -63,22 +63,27 @@ const Producto = () => {
                 setSuppliers(supplierResponse.data);
                 setLoading(false);
             } catch (error) {
-                console.error("Error loading data:", error);
+                console.error('Error loading data:', error);
                 setLoading(false);
             }
         };
         loadData();
     }, []);
 
-    // Open dialog to create/edit a product
+    // Abrir diálogo para crear/editar un producto
     const handleOpen = (product = {
         idProducto: '', nombreProducto: '', cantidad: '', precio: '', mensaje: '',
         stock: '', id_categoria: '', id_proveedor: ''
     }) => {
-        setCurrentProduct(product);
+        setCurrentProduct({
+            ...product,
+            id_categoria: product.categoria ? product.categoria.idCategoria : '',
+            id_proveedor: product.proveedor ? product.proveedor.idProveedor : ''
+        });
         setEditMode(!!product.idProducto);
         setOpen(true);
     };
+
 
     const handleClose = () => {
         setOpen(false);
@@ -89,12 +94,12 @@ const Producto = () => {
         setEditMode(false);
     };
 
-    // Submit form for adding/updating product
+    // Enviar formulario para agregar/actualizar un producto
     const handleSubmit = async (event) => {
         event.preventDefault();
         try {
             if (editMode) {
-                await ProductoService.updateProducto(currentProduct.idProducto, currentProduct);
+                await ProductoService.updateProducto(currentProduct);
             } else {
                 await ProductoService.createProducto(currentProduct);
             }
@@ -102,18 +107,18 @@ const Producto = () => {
             const response = await ProductoService.getAllProducto();
             setProducts(response.data);
         } catch (error) {
-            console.error("Error al agregar/actualizar el producto:", error);
+            console.error('Error al agregar/actualizar el producto:', error);
         }
     };
 
-    // Delete a product
+    // Eliminar un producto
     const handleDelete = async (id) => {
         try {
             await ProductoService.deleteProducto(id);
             const response = await ProductoService.getAllProducto();
             setProducts(response.data);
         } catch (error) {
-            console.error("Error al eliminar el producto:", error);
+            console.error('Error al eliminar el producto:', error);
         }
     };
 

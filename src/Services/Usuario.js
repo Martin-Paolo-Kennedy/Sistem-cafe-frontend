@@ -8,7 +8,7 @@ class UsuarioService {
     getAllUsuario(){
         return axios.get(API_URL);
     }
-    createCategoria(usuario){
+    createUsuario(usuario){
         return axios.post(`${API_URL}/registraUsuario`, usuario, {
             headers: {
                 'Content-Type': 'application/json'

@@ -15,11 +15,11 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    IconButton,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ProveedorService from '../../Services/Proveedor'; // Importa el servicio de Proveedor
+import ProveedorService from '../../Services/Proveedor';
+import Swal from 'sweetalert2'; // Importa SweetAlert2
 
 const Proveedor = () => {
     const [suppliers, setSuppliers] = useState([]);
@@ -35,6 +35,7 @@ const Proveedor = () => {
         ciudad: '', 
         telefono: ''
     });
+    const [error, setError] = useState('');
 
     // Cargar los proveedores al montar el componente
     useEffect(() => {
@@ -53,7 +54,7 @@ const Proveedor = () => {
     // Abrir el modal de agregar/editar proveedor
     const handleOpen = (supplier = { idProveedor: '', nombreProveedor: '', contacto: '', direccion: '', ciudad: '', telefono: '' }) => {
         setCurrentSupplier(supplier);
-        setEditMode(!!supplier.idProveedor); // Modo de edición si el proveedor tiene ID
+        setEditMode(!!supplier.idProveedor);
         setOpen(true);
     };
 
@@ -61,33 +62,86 @@ const Proveedor = () => {
         setOpen(false);
         setCurrentSupplier({ idProveedor: '', nombreProveedor: '', contacto: '', direccion: '', ciudad: '', telefono: '' });
         setEditMode(false);
+        setError(''); // Resetear error al cerrar
+    };
+
+    // Función para validar la entrada de letras, espacios, puntos y comas
+    const validateTextInput = (value) => {
+        const regex = /^[A-Za-zñÑ\s]+$/; // Permite letras, ñ, Ñ, espacios, puntos y comas
+        return regex.test(value);
+    };
+
+    // Función para validar números
+    const validatePhoneInput = (value) => {
+        const regex = /^[0-9\s]+$/; // Permite solo números, espacios y guiones
+        return regex.test(value);
     };
 
     // Guardar cambios o crear nuevo proveedor
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        // Validar cada campo antes de enviar
+        if (!validateTextInput(currentSupplier.nombreProveedor)) {
+            setError('El nombre solo puede contener letras, espacios, puntos y comas.');
+            return;
+        }
+        if (!validateTextInput(currentSupplier.contacto)) {
+            setError('El contacto solo puede contener letras, espacios, puntos y comas.');
+            return;
+        }
+        if (!validateTextInput(currentSupplier.direccion)) {
+            setError('La dirección solo puede contener letras, espacios, puntos y comas.');
+            return;
+        }
+        if (!validateTextInput(currentSupplier.ciudad)) {
+            setError('La ciudad solo puede contener letras, espacios, puntos y comas.');
+            return;
+        }
+        if (!validatePhoneInput(currentSupplier.telefono)) {
+            setError('El teléfono solo puede contener números, espacios y guiones.');
+            return;
+        }
+
         try {
             if (editMode) {
                 await ProveedorService.updateProducto(currentSupplier);
+                Swal.fire('Actualizado!', 'Proveedor actualizado con éxito', 'success');
             } else {
                 await ProveedorService.createProveedor(currentSupplier);
+                Swal.fire('Agregado!', 'Proveedor agregado con éxito', 'success');
             }
             handleClose();
             const response = await ProveedorService.getAllProveedor(); // Recargar proveedores después de guardar
             setSuppliers(response.data);
         } catch (error) {
             console.error('Error al guardar proveedor:', error);
+            Swal.fire('Error!', 'Error al guardar el proveedor', 'error');
         }
     };
 
     // Eliminar proveedor
     const handleDelete = async (id) => {
-        try {
-            await ProveedorService.deleteProducto(id);
-            const response = await ProveedorService.getAllProveedor(); // Recargar proveedores después de eliminar
-            setSuppliers(response.data);
-        } catch (error) {
-            console.error('Error al eliminar proveedor:', error);
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar!',
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await ProveedorService.deleteProducto(id);
+                const response = await ProveedorService.getAllProveedor(); // Recargar proveedores después de eliminar
+                setSuppliers(response.data);
+                Swal.fire('Eliminado!', 'Proveedor eliminado con éxito', 'success');
+            } catch (error) {
+                console.error('Error al eliminar proveedor:', error);
+                Swal.fire('Error!', 'Error al eliminar el proveedor', 'error');
+            }
         }
     };
 
@@ -131,12 +185,12 @@ const Proveedor = () => {
                                 <TableCell>{supplier.ciudad}</TableCell>
                                 <TableCell>{supplier.telefono}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handleOpen(supplier)}>
+                                    <Button onClick={() => handleOpen(supplier)}>
                                         <EditIcon />
-                                    </IconButton>
-                                    <IconButton onClick={() => handleDelete(supplier.idProveedor)}>
+                                    </Button>
+                                    <Button onClick={() => handleDelete(supplier.idProveedor)}>
                                         <DeleteIcon />
-                                    </IconButton>
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -158,6 +212,7 @@ const Proveedor = () => {
                     <DialogContentText>
                         {editMode ? 'Actualiza los detalles del proveedor.' : 'Ingresa los detalles del nuevo proveedor.'}
                     </DialogContentText>
+                    {error && <p style={{ color: 'red' }}>{error}</p>} {/* Mostrar mensaje de error */}
                     <TextField
                         autoFocus
                         margin="dense"

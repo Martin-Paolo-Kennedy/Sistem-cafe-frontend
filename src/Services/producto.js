@@ -8,7 +8,7 @@ class ProdcutoService {
     getAllProducto(){
         return axios.get(API_URL);
     }
-    createCliente(producto){
+    createProducto(producto){
         return axios.post(`${API_URL}/registraProducto`, producto, {
             headers: {
                 'Content-Type': 'application/json'
@@ -24,7 +24,7 @@ class ProdcutoService {
         });
     }
     
-    deleteProdcuto(id){
+    deleteProducto(id){
         return axios.delete(`${API_URL}/eliminaProducto/${id}`);
     }
 };
