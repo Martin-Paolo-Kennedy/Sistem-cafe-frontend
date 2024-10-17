@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Swal from 'sweetalert2'; // Importar SweetAlert
 import {
     Container,
     Table,
@@ -23,29 +24,8 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
-
-// Mock API functions (Reemplaza con tus llamadas a la API real)
-const fetchUsuarios = async () => {
-    return [
-        { id: 1, nombre: 'Juan Pérez', email: 'juanperez@gmail.com', password: '****', rol: 'Admin' },
-        { id: 2, nombre: 'María García', email: 'mariagarcia@gmail.com', password: '****', rol: 'User' },
-    ];
-};
-
-const createUsuario = async (usuario) => {
-    console.log('Creando usuario', usuario);
-};
-
-const updateUsuario = async (id, usuario) => {
-    console.log(`Actualizando usuario ${id}`, usuario);
-};
-
-const deleteUsuario = async (id) => {
-    console.log(`Eliminando usuario ${id}`);
-};
-
-const roles = ['Admin', 'User', 'Guest']; // Lista de roles disponibles
+import UsuarioService from '../../Services/Usuario';
+import RolService from '../../Services/Rol';
 
 const Usuario = () => {
     const [usuarios, setUsuarios] = useState([]);
@@ -53,7 +33,8 @@ const Usuario = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [open, setOpen] = useState(false);
     const [editMode, setEditMode] = useState(false);
-    const [currentUsuario, setCurrentUsuario] = useState({ id: '', nombre: '', email: '', password: '', rol: '' });
+    const [currentUsuario, setCurrentUsuario] = useState({ idUsuario: '', nombreUsuario: '', email: '', password: '', rol: { idRol: '' } });
+    const [roles, setRoles] = useState([]); // Estado para almacenar los roles
 
     useEffect(() => {
         const loadUsuarios = async () => {
@@ -61,38 +42,96 @@ const Usuario = () => {
             setUsuarios(data);
         };
 
+        const loadRoles = async () => {
+            const rolesData = await RolService.getAllRol();
+            setRoles(rolesData.data);
+        };
+
         loadUsuarios();
+        loadRoles();
     }, []);
 
-    const handleOpen = (usuario = { id: '', nombre: '', email: '', password: '', rol: '' }) => {
+    const fetchUsuarios = async () => {
+        try {
+            const response = await UsuarioService.getAllUsuario();
+            return response.data;
+        } catch (error) {
+            console.error("Error al obtener usuarios:", error);
+            Swal.fire('Error', 'No se pudieron cargar los usuarios', 'error');
+            return [];
+        }
+    };
+
+    const createUsuario = async (usuario) => {
+        try {
+            await UsuarioService.createUsuario(usuario);
+            Swal.fire('Éxito', 'Usuario creado exitosamente', 'success');
+        } catch (error) {
+            console.error("Error al crear usuario:", error);
+            Swal.fire('Error', 'No se pudo crear el usuario', 'error');
+        }
+    };
+
+    const updateUsuario = async (id, usuario) => {
+        try {
+            await UsuarioService.updateUsuario({ ...usuario, idUsuario: id });
+            Swal.fire('Éxito', 'Usuario actualizado exitosamente', 'success');
+        } catch (error) {
+            console.error("Error al actualizar usuario:", error);
+            Swal.fire('Error', 'No se pudo actualizar el usuario', 'error');
+        }
+    };
+
+    const deleteUsuario = async (id) => {
+        try {
+            await UsuarioService.deleteUsuario(id);
+            Swal.fire('Éxito', 'Usuario eliminado exitosamente', 'success');
+        } catch (error) {
+            console.error("Error al eliminar usuario:", error);
+            Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
+        }
+    };
+
+    const handleOpen = (usuario = { idUsuario: '', nombreUsuario: '', email: '', password: '', rol: { idRol: '' } }) => {
         setCurrentUsuario(usuario);
-        setEditMode(!!usuario.id); // Si tiene ID, estamos en modo edición
+        setEditMode(!!usuario.idUsuario);
         setOpen(true);
     };
 
     const handleClose = () => {
         setOpen(false);
-        setCurrentUsuario({ id: '', nombre: '', email: '', password: '', rol: '' });
+        setCurrentUsuario({ idUsuario: '', nombreUsuario: '', email: '', password: '', rol: { idRol: '' } });
         setEditMode(false);
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (editMode) {
-            await updateUsuario(currentUsuario.id, currentUsuario);
+            await updateUsuario(currentUsuario.idUsuario, currentUsuario);
         } else {
             await createUsuario(currentUsuario);
         }
         handleClose();
-        // Recargar usuarios después de la creación/edición
         const data = await fetchUsuarios();
         setUsuarios(data);
     };
 
     const handleDelete = async (id) => {
-        await deleteUsuario(id);
-        const data = await fetchUsuarios();
-        setUsuarios(data);
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¡No podrás revertir esta acción!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminarlo'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await deleteUsuario(id);
+                const data = await fetchUsuarios();
+                setUsuarios(data);
+            }
+        });
     };
 
     const handleChangePage = (event, newPage) => {
@@ -124,17 +163,17 @@ const Usuario = () => {
                     </TableHead>
                     <TableBody>
                         {usuarios.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((usuario) => (
-                            <TableRow key={usuario.id}>
-                                <TableCell>{usuario.id}</TableCell>
-                                <TableCell>{usuario.nombre}</TableCell>
+                            <TableRow key={usuario.idUsuario}>
+                                <TableCell>{usuario.idUsuario}</TableCell>
+                                <TableCell>{usuario.nombreUsuario}</TableCell>
                                 <TableCell>{usuario.email}</TableCell>
-                                <TableCell>{'****'}</TableCell> {/* Ocultar el password */}
-                                <TableCell>{usuario.rol}</TableCell>
+                                <TableCell>{'****'}</TableCell>
+                                <TableCell>{usuario.rol?.nombre}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(usuario)}>
                                         <EditIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(usuario.id)}>
+                                    <IconButton onClick={() => handleDelete(usuario.idUsuario)}>
                                         <DeleteIcon />
                                     </IconButton>
                                 </TableCell>
@@ -153,53 +192,48 @@ const Usuario = () => {
                 onRowsPerPageChange={handleChangeRowsPerPage}
             />
             <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{editMode ? 'Actualizar Usuario' : 'Agregar Usuario'}</DialogTitle>
+                <DialogTitle>{editMode ? 'Editar Usuario' : 'Agregar Usuario'}</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>
-                        {editMode ? 'Actualiza los detalles del usuario.' : 'Ingresa los detalles del nuevo usuario.'}
-                    </DialogContentText>
+                    <DialogContentText>Por favor ingrese la información del usuario.</DialogContentText>
                     <TextField
                         autoFocus
                         margin="dense"
                         label="Nombre"
                         fullWidth
-                        variant="outlined"
-                        value={currentUsuario.nombre}
-                        onChange={(e) => setCurrentUsuario({ ...currentUsuario, nombre: e.target.value })}
+                        value={currentUsuario.nombreUsuario}
+                        onChange={(e) => setCurrentUsuario({ ...currentUsuario, nombreUsuario: e.target.value })}
                     />
                     <TextField
                         margin="dense"
                         label="Email"
                         fullWidth
-                        variant="outlined"
                         value={currentUsuario.email}
                         onChange={(e) => setCurrentUsuario({ ...currentUsuario, email: e.target.value })}
                     />
                     <TextField
                         margin="dense"
                         label="Password"
-                        type="password"
                         fullWidth
-                        variant="outlined"
+                        type="password"
                         value={currentUsuario.password}
                         onChange={(e) => setCurrentUsuario({ ...currentUsuario, password: e.target.value })}
                     />
                     <FormControl fullWidth margin="dense">
                         <InputLabel>Rol</InputLabel>
                         <Select
-                            value={currentUsuario.rol}
-                            onChange={(e) => setCurrentUsuario({ ...currentUsuario, rol: e.target.value })}
+                            value={currentUsuario.rol?.idRol || ''}
+                            onChange={(e) => setCurrentUsuario({ ...currentUsuario, rol: { idRol: e.target.value } })}
                         >
                             {roles.map((rol) => (
-                                <MenuItem key={rol} value={rol}>
-                                    {rol}
+                                <MenuItem key={rol.idRol} value={rol.idRol}>
+                                    {rol.nombre}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose} color="primary">
+                    <Button onClick={handleClose} color="secondary">
                         Cancelar
                     </Button>
                     <Button onClick={handleSubmit} color="primary">

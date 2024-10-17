@@ -8,6 +8,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { styled } from '@mui/material/styles';
 import ProductoService from '../../Services/producto';
+import PedidoService from '../../Services/Pedido';
+import DetallePedidoService from '../../Services/DetallePedido';
 
 const StyledCard = styled(Card)({
   position: 'relative',
@@ -37,7 +39,7 @@ const Tienda = () => {
   const [clientData, setClientData] = useState({
     name: '',
     email: '',
-    address: ''
+    telefonoCliente: '' // Cambiado a telefonoCliente
   });
   const [products, setProducts] = useState([]);
 
@@ -51,7 +53,7 @@ const Tienda = () => {
         console.error('Error al obtener los productos:', error);
       }
     };
-    
+
     fetchProducts();
   }, []);
 
@@ -98,7 +100,7 @@ const Tienda = () => {
     setClientData({
       name: '',
       email: '',
-      address: ''
+      telefonoCliente: '' // Reiniciar campo telefonoCliente
     });
   };
 
@@ -107,13 +109,18 @@ const Tienda = () => {
     setClientData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleFinalizePurchase = () => {
-    // Aquí puedes implementar la lógica para enviar los datos al backend
-    console.log('Datos del cliente:', clientData);
-    console.log('Resumen de compra:', cart);
-    handleCheckoutClose();
-    setCart([]);
-  };
+  const handleFinalizePurchase = async () => {
+    try {
+        const response = await PedidoService.createPedido(clientData);
+        console.log('Pedido registrado:', response.data);
+    } catch (error) {
+        console.error('Error al registrar el pedido:', error);
+        // Si el error tiene una respuesta, muestra el mensaje de error
+        if (error.response) {
+            console.error('Error response data:', error.response.data);
+        }
+    }
+};
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -235,9 +242,9 @@ const Tienda = () => {
             margin="normal"
           />
           <TextField
-            label="Dirección"
-            name="address"
-            value={clientData.address}
+            label="Teléfono" // Cambiado a Telefono
+            name="telefonoCliente" // Cambiado a telefonoCliente
+            value={clientData.telefonoCliente} // Cambiado a telefonoCliente
             onChange={handleClientDataChange}
             fullWidth
             margin="normal"
@@ -245,7 +252,7 @@ const Tienda = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCheckoutClose} color="primary">Cancelar</Button>
-          <Button onClick={handleFinalizePurchase} color="primary">Finalizar Compra</Button>
+          <Button onClick={handleFinalizePurchase} color="primary">Confirmar Compra</Button>
         </DialogActions>
       </Dialog>
     </Box>
